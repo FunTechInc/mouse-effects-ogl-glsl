@@ -1,12 +1,12 @@
 import './style.css'
-import javascriptLogo from './javascript.svg'
-import { setupCounter } from './counter.js'
-import GradationParticles from './js/canvas';
+import MainCanvas from './js/maincanvas';
+import MainFog from './js/mainfog';
 
 (() => {
    const target = "webgl";
    const el = document.getElementById(target);
-   const gParticle = new GradationParticles(
+   const gParticle = new MainCanvas(
+   // const gParticle = new MainFog(   
       el,
       {
          debug: {

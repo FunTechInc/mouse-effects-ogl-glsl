@@ -105,4 +105,5 @@ button:focus-visible {
 }
 #gui {
   margin-right: auto;
+  position: absolute;
 }

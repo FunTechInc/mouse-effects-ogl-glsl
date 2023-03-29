@@ -107,7 +107,7 @@ export default class HiddenThreeUtils {
       this.camera.position.z = this.state.height / 2 / Math.tan(this.fovRad);
       this.camera.updateProjectionMatrix();
       //set renderer
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      // this.renderer.setPixelRatio(window.devicePixelRatio);
       this.renderer.setSize(this.state.width, this.state.height);
    }
 

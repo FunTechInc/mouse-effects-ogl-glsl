@@ -1,37 +1,40 @@
 import * as THREE from "three";
 import { Pane } from "tweakpane";
 import HiddenThreeUtils from "./HiddenThreeUtils";
-import myFragmentShader from "./glsl/main.frag";
-import myVertexShader from "./glsl/main.vert";
+import myFragmentShader from "./glsl/maincanvas.frag";
 import { LimitFrameRate } from "./LimitFrameRate";
 
 /*===============================================
 plane geo
 ===============================================*/
 
-export default class BacsPlane extends HiddenThreeUtils {
+export default class MainCanvas extends HiddenThreeUtils {
     constructor(el, opt, gParams) {
         super(el, opt);
         this.material = false;
-        //canvas size
         this.canvasSize = {
             width:this.el.clientWidth,
             height:this.el.clientHeight,
         }
-        this.raycaster = new THREE.Raycaster();
         this.pointer = new THREE.Vector2();
-        this.trail = [];
         this.onPointerMove = this.onPointerMove.bind(this);
-        //rAF ID
         this.limitFrameRate = new LimitFrameRate(60);
         this.rAFID = 0;
-        // this.scene = new THREE.Scene();
         this.gParams = {
             minColor: [
                 gParams?.minColor?.c0 || { r: 255, g: 255, b: 255 },
             ],
             maxColor: [
                 gParams?.maxColor?.c0 || { r: 0, g: 0, b: 255 },
+            ],
+            n1Color: [
+                gParams?.maxColor?.c0 || { r: 255, g: 87, b: 51 },
+            ],
+            n2Color: [
+                gParams?.maxColor?.c0 || { r: 87, g: 24, b: 69 },
+            ],
+            n3Color: [
+                gParams?.maxColor?.c0 || { r: 199, g: 0, b: 57 },
             ],
         }
 
@@ -47,20 +50,23 @@ export default class BacsPlane extends HiddenThreeUtils {
             `rgb(${this.gParams[colorArr][index].r}, ${this.gParams[colorArr][index].g}, ${this.gParams[colorArr][index].b})`
          );
         };
-        this.textureA = new THREE.WebGLRenderTarget( this.canvasSize.width, this.canvasSize.height );
-        this.textureB = new THREE.WebGLRenderTarget( this.canvasSize.width, this.canvasSize.height );
+        this.textureA = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.NearestFilter,
+         });
+        this.textureB = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.NearestFilter,
+         });
         this.material = new THREE.ShaderMaterial({
             uniforms: {
                 bufferTexture: { 
                     value: this.textureA 
                 },
-                newTexture: {
-                    value: this.textureB
-                },
                 uResolution: {
                     value: new THREE.Vector2(this.canvasSize.width, this.canvasSize.height),
                 },
-			    uTouch: {
+			       uTouch: {
                     value: this.pointer,
                 },
                 uTime: { value: 0 },
@@ -70,16 +76,26 @@ export default class BacsPlane extends HiddenThreeUtils {
                 maxColor: {
                     value: getRgbfromParams("maxColor", 0),
                 },
+                n1Color: {
+                     value: getRgbfromParams("n1Color", 0),
+                },
+                n2Color: {
+                     value: getRgbfromParams("n2Color", 0),
+                },
+                n3Color: {
+                     value: getRgbfromParams("n3Color", 0),
+                },
                 uBlur: { value: 1.0 },
                 uScale: { value: 0.1 },
+                uLight: { value: 1.0 },
+                uNoise: { value: 0.3 },
             },
             fragmentShader: myFragmentShader,
-            vertexShader: myVertexShader,
         });
         let plane = new THREE.PlaneGeometry( this.canvasSize.width, this.canvasSize.height );
         this.object = new THREE.Mesh( plane, this.material );
         this.bufferScene.add( this.object );
-        this.finalMaterial = new THREE.MeshBasicMaterial({map: this.textureB});
+        this.finalMaterial = new THREE.MeshBasicMaterial({map: this.textureB.texture});
         this.quad = new THREE.Mesh( plane, this.finalMaterial );
         this.scene.add(this.quad); 
     }
@@ -88,7 +104,7 @@ export default class BacsPlane extends HiddenThreeUtils {
 	===============================================*/
    init() {
       this.createMesh();
-      window.addEventListener("pointermove", this.onPointerMove);
+      window.addEventListener("mousemove", this.onPointerMove);
       this.play();
       this.setGUI();
     }
@@ -101,28 +117,37 @@ export default class BacsPlane extends HiddenThreeUtils {
             this.rAFID = requestAnimationFrame(rendering);
             return;
         }
-        this.render();
-        this.update();
         this.rAFID = requestAnimationFrame(rendering);
+        this.update();
       };
       this.rAFID = requestAnimationFrame(rendering);
     }
 
     update() {
-      let time = this.state.time;
-      let pointer = this.pointer;
-      this.material.uniforms.uTime.value = time;
-      this.material.uniforms.uTouch.value = pointer;
+        if (this.state.clock) {
+         this.state.time = this.state.clock.getElapsedTime();
+      } else {
+         this.state.clock = new THREE.Clock();
+      }
 
-      this.renderer.render(this.bufferScene,this.camera,this.textureB,true);
+      // let pointer = this.pointer;
+      // this.material.uniforms.uTouch.value = pointer;
+
+      this.renderer.setRenderTarget(this.textureB);
+      this.renderer.render(this.bufferScene, this.camera);
+      this.renderer.setRenderTarget(null);
 
       let t = this.textureA;
       this.textureA = this.textureB;
       this.textureB = t;
-      this.quad.material.map = this.textureB;
-      this.material.uniforms.bufferTexture.value = this.textureA;
+      this.quad.material.map = this.textureB.texture;
+      this.material.uniforms.bufferTexture.value = this.textureA.texture;
 
-    //   this.renderer.render( this.scene, this.camera );
+      let time = this.state.time;
+      this.material.uniforms.uTime.value = time;
+
+      this.renderer.render( this.scene, this.camera );
+
    }
    /*===============================================
 	GUI
@@ -132,27 +157,37 @@ export default class BacsPlane extends HiddenThreeUtils {
          container: document.getElementById("gui"),
       });
       const PARAMS = {
-         minColor: {
-            r: this.gParams.minColor[0].r,
-            g: this.gParams.minColor[0].g,
-            b: this.gParams.minColor[0].b,
+         n1Color: {
+            r: this.gParams.n1Color[0].r,
+            g: this.gParams.n1Color[0].g,
+            b: this.gParams.n1Color[0].b,
          },
-         maxColor: {
-            r: this.gParams.maxColor[0].r,
-            g: this.gParams.maxColor[0].g,
-            b: this.gParams.maxColor[0].b,
+         n2Color: {
+            r: this.gParams.n2Color[0].r,
+            g: this.gParams.n2Color[0].g,
+            b: this.gParams.n2Color[0].b,
          },
-         blur: 1.0,
+         n3Color: {
+            r: this.gParams.n3Color[0].r,
+            g: this.gParams.n3Color[0].g,
+            b: this.gParams.n3Color[0].b,
+         },
          scale: 0.1,
+         light: 1.0,
+         noise: 0.3,
          pause: false,
       };
       //folder
-      const minfolder = pane.addFolder({
-         title: "min color",
+      const n1folder = pane.addFolder({
+         title: "n1 color",
          expanded: false,
       });
-      const maxfolder = pane.addFolder({
-         title: "max color",
+      const n2folder = pane.addFolder({
+         title: "n2 color",
+         expanded: false,
+      });
+      const n3folder = pane.addFolder({
+         title: "n3 color",
          expanded: false,
       });
       //color
@@ -163,26 +198,35 @@ export default class BacsPlane extends HiddenThreeUtils {
             )})`
          );
       };
-      //noise color
-      minfolder
-         .addInput(PARAMS, "minColor", { view: "color" })
+      n1folder
+         .addInput(PARAMS, "n1Color", { view: "color" })
          .on("change", (v) => {
-            this.material.uniforms.minColor.value = updateGuiColor(v.value);
+            this.material.uniforms.n1Color.value = updateGuiColor(v.value);
          });
-      //blend color
-      maxfolder
-         .addInput(PARAMS, "maxColor", { view: "color" })
+      n2folder
+         .addInput(PARAMS, "n2Color", { view: "color" })
          .on("change", (v) => {
-            this.material.uniforms.maxColor.value = updateGuiColor(v.value);
+            this.material.uniforms.n2Color.value = updateGuiColor(v.value);
          });
-      //blur
-      pane.addInput(PARAMS, "blur", { min: 1, max: 3 }).on("change", (v) => {
-         this.material.uniforms.uBlur.value = v.value;
-      });   
-      //scale
+      n3folder
+         .addInput(PARAMS, "n3Color", { view: "color" })
+         .on("change", (v) => {
+            this.material.uniforms.n3Color.value = updateGuiColor(v.value);
+         });  
       pane.addInput(PARAMS, "scale", { min: 0.1, max: 0.5 }).on("change", (v) => {
          this.material.uniforms.uScale.value = v.value;
       });
+      pane.addInput(PARAMS, "light", { min: 0, max: 1 }).on("change", (v) => {
+         this.material.uniforms.uLight.value = v.value;
+      }); 
+      pane.addInput(PARAMS, "noise", { min: 0.0, max: 1.0 }).on("change", (v) => {
+         this.material.uniforms.uNoise.value = v.value;
+      });   
+      //blur
+      // pane.addInput(PARAMS, "blur", { min: 1, max: 3 }).on("change", (v) => {
+      //    this.material.uniforms.uBlur.value = v.value;
+      // });   
+      
       //pause
       pane.addInput(PARAMS, "pause").on("change", (v) => {
          if (v.value === true) {
