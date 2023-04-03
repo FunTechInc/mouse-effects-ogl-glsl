@@ -28,13 +28,16 @@ export default class MainCanvas extends HiddenThreeUtils {
                 gParams?.maxColor?.c0 || { r: 0, g: 0, b: 255 },
             ],
             n1Color: [
-                gParams?.maxColor?.c0 || { r: 255, g: 87, b: 51 },
+                gParams?.n1Color?.c0 || { r: 255, g: 87, b: 51 },
             ],
             n2Color: [
-                gParams?.maxColor?.c0 || { r: 87, g: 24, b: 69 },
+                gParams?.n2Color?.c0 || { r: 87, g: 24, b: 69 },
             ],
             n3Color: [
-                gParams?.maxColor?.c0 || { r: 199, g: 0, b: 57 },
+                gParams?.n3Color?.c0 || { r: 199, g: 0, b: 57 },
+            ],
+            uBacColor: [
+                gParams?.uBacColor?.c0 || { r: 0, g: 0, b: 0 },
             ],
         }
 
@@ -85,17 +88,22 @@ export default class MainCanvas extends HiddenThreeUtils {
                 n3Color: {
                      value: getRgbfromParams("n3Color", 0),
                 },
+                uBacColor: {
+                     value: getRgbfromParams("uBacColor",0),
+                },
                 uBlur: { value: 1.0 },
                 uScale: { value: 0.1 },
                 uLight: { value: 1.0 },
                 uNoise: { value: 0.3 },
+                uAlpha: { value: 0.5 },
             },
             fragmentShader: myFragmentShader,
+            transparent: true,
         });
         let plane = new THREE.PlaneGeometry( this.canvasSize.width, this.canvasSize.height );
         this.object = new THREE.Mesh( plane, this.material );
         this.bufferScene.add( this.object );
-        this.finalMaterial = new THREE.MeshBasicMaterial({map: this.textureB.texture});
+        this.finalMaterial = new THREE.MeshBasicMaterial({map: this.textureB.texture,transparent: true,});
         this.quad = new THREE.Mesh( plane, this.finalMaterial );
         this.scene.add(this.quad); 
     }
@@ -175,6 +183,7 @@ export default class MainCanvas extends HiddenThreeUtils {
          scale: 0.1,
          light: 1.0,
          noise: 0.3,
+         alpha: 0.5,
          pause: false,
       };
       //folder
@@ -221,7 +230,10 @@ export default class MainCanvas extends HiddenThreeUtils {
       }); 
       pane.addInput(PARAMS, "noise", { min: 0.0, max: 1.0 }).on("change", (v) => {
          this.material.uniforms.uNoise.value = v.value;
-      });   
+      });
+      pane.addInput(PARAMS, "alpha", { min: 0.0, max: 1.0 }).on("change", (v) => {
+         this.material.uniforms.uAlpha.value = v.value;
+      });     
       //blur
       // pane.addInput(PARAMS, "blur", { min: 1, max: 3 }).on("change", (v) => {
       //    this.material.uniforms.uBlur.value = v.value;

@@ -59,6 +59,7 @@ uniform vec3 n2Color;
 uniform vec3 n3Color;
 uniform float uLight;
 uniform float uNoise;
+uniform float uAlpha;
 
 void main(){
 
@@ -71,6 +72,6 @@ float n3=fbm(pixel+cos(uTime*.1));
 vec3 col=n1Color*n1+n2Color*n2+n3Color*n3;
 
 gl_FragColor.rgb=(col)*uLight*clamp(clamp(rand(m),0.1,0.9),1.-uNoise,1.0);
-gl_FragColor.a=1.0;
+gl_FragColor.a=float(col)*uLight*clamp(clamp(rand(m),.1,.9),1.-uNoise,1.)*uAlpha;
 
 }

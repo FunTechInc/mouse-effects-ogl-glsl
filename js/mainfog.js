@@ -54,8 +54,10 @@ export default class MainFog extends HiddenThreeUtils {
                 },
                 uLight: { value: 1.0 },
                 uNoise: { value: 0.3 },
+                uAlpha: { value: 0.5 },
             },
             fragmentShader: myFragmentShader,
+            transparent: true,
         });
         let plane = new THREE.PlaneGeometry( this.canvasSize.width, this.canvasSize.height );
         this.object = new THREE.Mesh( plane, this.material );
@@ -122,6 +124,7 @@ export default class MainFog extends HiddenThreeUtils {
          },
          light: 1.0,
          noise: 0.3,
+         alpha: 0.5,
          pause: false,
       };
       //folder
@@ -165,7 +168,10 @@ export default class MainFog extends HiddenThreeUtils {
       }); 
       pane.addInput(PARAMS, "noise", { min: 0.0, max: 0.5 }).on("change", (v) => {
          this.material.uniforms.uNoise.value = v.value;
-      });   
+      });
+      pane.addInput(PARAMS, "alpha", { min: 0.0, max: 1.0 }).on("change", (v) => {
+         this.material.uniforms.uAlpha.value = v.value;
+      });     
       //pause
       pane.addInput(PARAMS, "pause").on("change", (v) => {
          if (v.value === true) {

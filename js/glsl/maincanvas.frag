@@ -15,8 +15,8 @@ vec3 permute(vec3 x){
 float snoise(vec2 v)
 {
     const vec4 C=vec4(.211324865405187,
-    .366025403784439,
-    -.577350269189626,
+        .366025403784439,
+        -.577350269189626,
     .024390243902439);
     vec2 i=floor(v+dot(v,C.yy));
     vec2 x0=v-i+dot(i,C.xx);
@@ -43,10 +43,10 @@ float snoise(vec2 v)
 
 //blur
 // float remap01(float a,float b,float t){
-//     return(t-a)/(b-a);
+    //     return(t-a)/(b-a);
 // }
 // float remap(float a,float b,float c,float d,float t){
-//     return remap01(a,b,t)*(d-c)+c;
+    //     return remap01(a,b,t)*(d-c)+c;
 // }
 
 float fbm(vec2 n){
@@ -68,35 +68,37 @@ uniform vec3 n3Color;
 uniform float uScale;
 uniform float uLight;
 uniform float uNoise;
+uniform float uAlpha;
 // uniform float uBlur;
 
 void main(){
-
+    
     vec2 pixel=gl_FragCoord.xy/uResolution.xy;
-    vec2 mouse = ((uTouch+1.0)/2.);
+    vec2 mouse=((uTouch+1.)/2.);
     float dist=distance(mouse.xy,pixel.xy);
-
-    float n1=fbm(pixel+(uTime*.3))+fbm(pixel-uTime*0.3);
+    
+    float n1=fbm(pixel+(uTime*.3))+fbm(pixel-uTime*.3);
     float n2=fbm(pixel-cos(uTime*.3));
     float n3=fbm(pixel+cos(uTime*.3));
-    vec3 col=n1Color*n1+n2Color*n2+n3Color*n3;
+    vec3 col=(n1Color*n1+n2Color*n2+n3Color*n3);
     
-    float m=snoise(vec2(1.0+sin(uTime*0.3)+pixel.x,1.0+cos(uTime*0.5)+pixel.y));
-    float mask=smoothstep(uScale*1.9,uScale*0.9,dist);
+    float m=snoise(vec2(1.+sin(uTime*.3)+pixel.x,1.+cos(uTime*.5)+pixel.y));
+    float mask=smoothstep(uScale*1.9,uScale*.9,dist);
     
     // float blur=remap(-100.,100.,.2,.3,.9);
     // blur=pow(blur*3.,1.)*.4*uBlur*1.;
-
+    
     float xPixel=1./uResolution.x;
     float yPixel=1./uResolution.y;
     vec4 rightColor=texture2D(bufferTexture,vec2(pixel.x+xPixel,pixel.y));
     vec4 leftColor=texture2D(bufferTexture,vec2(pixel.x-xPixel,pixel.y));
     vec4 upColor=texture2D(bufferTexture,vec2(pixel.x,pixel.y+yPixel));
     vec4 downColor=texture2D(bufferTexture,vec2(pixel.x,pixel.y-yPixel));
-   
+    
     float factor=7.*.016*((leftColor.r+rightColor.r+downColor.r+upColor.r)*2.-9.*gl_FragColor.r);
-    float intensity=1.-min(length(mouse*2.-1.0),1.)*0.8;
+    float intensity=1.-min(length(mouse*2.-1.),1.)*.8;
 
+    
     gl_FragColor.rgb=(col*mask*clamp(clamp(rand(m),.1,1.9),1.-uNoise,1.)+vec3(factor*col))*uLight;
-    gl_FragColor.a=0.0;
+    gl_FragColor.a=(float(col)*mask*clamp(clamp(rand(m),.1,1.9),1.-uNoise,1.)+factor*float(col))*uLight*uAlpha;
 }
