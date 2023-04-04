@@ -18,26 +18,16 @@ export default class MainCanvas extends HiddenThreeUtils {
         }
         this.pointer = new THREE.Vector2();
         this.onPointerMove = this.onPointerMove.bind(this);
-        this.limitFrameRate = new LimitFrameRate(60);
         this.rAFID = 0;
         this.gParams = {
-            minColor: [
-                gParams?.minColor?.c0 || { r: 255, g: 255, b: 255 },
-            ],
-            maxColor: [
-                gParams?.maxColor?.c0 || { r: 0, g: 0, b: 255 },
-            ],
-            n1Color: [
-                gParams?.n1Color?.c0 || { r: 255, g: 87, b: 51 },
-            ],
-            n2Color: [
-                gParams?.n2Color?.c0 || { r: 87, g: 24, b: 69 },
-            ],
-            n3Color: [
-                gParams?.n3Color?.c0 || { r: 199, g: 0, b: 57 },
-            ],
-            uBacColor: [
-                gParams?.uBacColor?.c0 || { r: 0, g: 0, b: 0 },
+            scale: gParams?.scale || 0.1,
+            light: gParams?.light || 1.0,
+            noise: gParams?.noise || 0.3,
+            alpha: gParams?.alpha || 0.5,
+            nColors: [
+               gParams?.nColors?.c0 || { r: 0, g: 0, b: 0 },
+               gParams?.nColors?.c1 || { r: 0, g: 0, b: 0 },
+               gParams?.nColors?.c2 || { r: 0, g: 0, b: 0 },
             ],
         }
 
@@ -73,37 +63,28 @@ export default class MainCanvas extends HiddenThreeUtils {
                     value: this.pointer,
                 },
                 uTime: { value: 0 },
-                minColor: {
-                    value: getRgbfromParams("minColor", 0),
-                },
-                maxColor: {
-                    value: getRgbfromParams("maxColor", 0),
-                },
-                n1Color: {
-                     value: getRgbfromParams("n1Color", 0),
-                },
-                n2Color: {
-                     value: getRgbfromParams("n2Color", 0),
-                },
-                n3Color: {
-                     value: getRgbfromParams("n3Color", 0),
-                },
-                uBacColor: {
-                     value: getRgbfromParams("uBacColor",0),
-                },
+                nColor0: {
+                  value: getRgbfromParams("nColors", 0),
+               },
+               nColor1: {
+                  value: getRgbfromParams("nColors", 1),
+               },
+               nColor2: {
+                  value: getRgbfromParams("nColors", 2),
+               },
                 uBlur: { value: 1.0 },
-                uScale: { value: 0.1 },
-                uLight: { value: 1.0 },
-                uNoise: { value: 0.3 },
-                uAlpha: { value: 0.5 },
+                uScale: { value: this.gParams.scale },
+                uLight: { value: this.gParams.light },
+                uNoise: { value: this.gParams.noise },
+                uAlpha: { value: this.gParams.alpha },
             },
             fragmentShader: myFragmentShader,
-            transparent: true,
+            // transparent: true,
         });
         let plane = new THREE.PlaneGeometry( this.canvasSize.width, this.canvasSize.height );
         this.object = new THREE.Mesh( plane, this.material );
         this.bufferScene.add( this.object );
-        this.finalMaterial = new THREE.MeshBasicMaterial({map: this.textureB.texture,transparent: true,});
+        this.finalMaterial = new THREE.MeshBasicMaterial({map: this.textureB.texture,transparent: true });
         this.quad = new THREE.Mesh( plane, this.finalMaterial );
         this.scene.add(this.quad); 
     }
@@ -119,9 +100,10 @@ export default class MainCanvas extends HiddenThreeUtils {
    pause() {
       cancelAnimationFrame(this.rAFID);
     }
-   play() {
+   play(fps = 10) {
+      const limitFrames = new LimitFrameRate(fps);
       const rendering = (timestamp) => {
-        if (this.limitFrameRate.isLimitFrames(timestamp)) {
+        if (limitFrames.isLimitFrames(timestamp)) {
             this.rAFID = requestAnimationFrame(rendering);
             return;
         }
@@ -129,9 +111,9 @@ export default class MainCanvas extends HiddenThreeUtils {
         this.update();
       };
       this.rAFID = requestAnimationFrame(rendering);
-    }
+   }
 
-    update() {
+   update() {
         if (this.state.clock) {
          this.state.time = this.state.clock.getElapsedTime();
       } else {
@@ -155,8 +137,25 @@ export default class MainCanvas extends HiddenThreeUtils {
       this.material.uniforms.uTime.value = time;
 
       this.renderer.render( this.scene, this.camera );
-
    }
+   // updateColors(newColor0, newColor1, newColor2){
+   //      this.gParams.nColors[0].r = newColor0.r;
+   //      this.gParams.nColors[0].g = newColor0.g;
+   //      this.gParams.nColors[0].b = newColor0.b;
+
+   //      this.gParams.nColors[1].r = newColor1.r;
+   //      this.gParams.nColors[1].g = newColor1.g;
+   //      this.gParams.nColors[1].b = newColor1.b;
+
+   //      this.gParams.nColors[2].r = newColor2.r;
+   //      this.gParams.nColors[2].g = newColor2.g;
+   //      this.gParams.nColors[2].b = newColor2.b;
+
+   //      this.material.uniforms.nColor0.value = new THREE.Color(newColor0.r, newColor0.g, newColor0.b);
+   //      this.material.uniforms.nColor1.value = new THREE.Color(newColor1.r, newColor1.g, newColor1.b);
+   //      this.material.uniforms.nColor2.value = new THREE.Color(newColor2.r, newColor2.g, newColor2.b);
+   // }
+
    /*===============================================
 	GUI
 	===============================================*/
@@ -165,38 +164,30 @@ export default class MainCanvas extends HiddenThreeUtils {
          container: document.getElementById("gui"),
       });
       const PARAMS = {
-         n1Color: {
-            r: this.gParams.n1Color[0].r,
-            g: this.gParams.n1Color[0].g,
-            b: this.gParams.n1Color[0].b,
+         nColor0: {
+            r: this.gParams.nColors[0].r,
+            g: this.gParams.nColors[0].g,
+            b: this.gParams.nColors[0].b,
          },
-         n2Color: {
-            r: this.gParams.n2Color[0].r,
-            g: this.gParams.n2Color[0].g,
-            b: this.gParams.n2Color[0].b,
+         nColor1: {
+            r: this.gParams.nColors[1].r,
+            g: this.gParams.nColors[1].g,
+            b: this.gParams.nColors[1].b,
          },
-         n3Color: {
-            r: this.gParams.n3Color[0].r,
-            g: this.gParams.n3Color[0].g,
-            b: this.gParams.n3Color[0].b,
+         nColor2: {
+            r: this.gParams.nColors[2].r,
+            g: this.gParams.nColors[2].g,
+            b: this.gParams.nColors[2].b,
          },
-         scale: 0.1,
-         light: 1.0,
-         noise: 0.3,
-         alpha: 0.5,
+         scale: this.gParams.scale,
+         light: this.gParams.light,
+         noise: this.gParams.noise,
+         alpha: this.gParams.alpha,
          pause: false,
       };
       //folder
-      const n1folder = pane.addFolder({
-         title: "n1 color",
-         expanded: false,
-      });
-      const n2folder = pane.addFolder({
-         title: "n2 color",
-         expanded: false,
-      });
-      const n3folder = pane.addFolder({
-         title: "n3 color",
+      const nfolder = pane.addFolder({
+         title: "noise colors",
          expanded: false,
       });
       //color
@@ -207,21 +198,21 @@ export default class MainCanvas extends HiddenThreeUtils {
             )})`
          );
       };
-      n1folder
-         .addInput(PARAMS, "n1Color", { view: "color" })
+      nfolder
+         .addInput(PARAMS, "nColor0", { view: "color" })
          .on("change", (v) => {
-            this.material.uniforms.n1Color.value = updateGuiColor(v.value);
+            this.material.uniforms.nColor0.value = updateGuiColor(v.value);
          });
-      n2folder
-         .addInput(PARAMS, "n2Color", { view: "color" })
+      nfolder
+         .addInput(PARAMS, "nColor1", { view: "color" })
          .on("change", (v) => {
-            this.material.uniforms.n2Color.value = updateGuiColor(v.value);
+            this.material.uniforms.nColor1.value = updateGuiColor(v.value);
          });
-      n3folder
-         .addInput(PARAMS, "n3Color", { view: "color" })
+      nfolder
+         .addInput(PARAMS, "nColor2", { view: "color" })
          .on("change", (v) => {
-            this.material.uniforms.n3Color.value = updateGuiColor(v.value);
-         });  
+            this.material.uniforms.nColor2.value = updateGuiColor(v.value);
+         }); 
       pane.addInput(PARAMS, "scale", { min: 0.1, max: 0.5 }).on("change", (v) => {
          this.material.uniforms.uScale.value = v.value;
       });

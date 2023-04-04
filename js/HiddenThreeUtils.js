@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 export default class HiddenThreeUtils {
    constructor(el, opt) {
@@ -43,7 +42,7 @@ export default class HiddenThreeUtils {
       );
 
       // renderer init
-      const clearColor = this.opt?.clearColor || 0x000000;
+      const clearColor = this.opt?.clearColor || 0xffffff;
       const clearAlpha = this.opt?.clearAlpha || 0.0;
       this.renderer = new THREE.WebGLRenderer({
          alpha: this.opt?.alpha || false,
@@ -85,12 +84,12 @@ export default class HiddenThreeUtils {
             )
          );
       }
-      if (this.controls) {
-         this.controls = new OrbitControls(
-            this.camera,
-            this.renderer.domElement
-         );
-      }
+      // if (this.controls) {
+      //    this.controls = new OrbitControls(
+      //       this.camera,
+      //       this.renderer.domElement
+      //    );
+      // }
    }
 
    //update state width/height

@@ -62,9 +62,9 @@ uniform vec2 uResolution;
 uniform sampler2D bufferTexture;
 uniform vec2 uTouch;
 uniform float uTime;
-uniform vec3 n1Color;
-uniform vec3 n2Color;
-uniform vec3 n3Color;
+uniform vec3 nColor0;
+uniform vec3 nColor1;
+uniform vec3 nColor2;
 uniform float uScale;
 uniform float uLight;
 uniform float uNoise;
@@ -72,18 +72,18 @@ uniform float uAlpha;
 // uniform float uBlur;
 
 void main(){
-    
+    float time = uTime * 0.8;
     vec2 pixel=gl_FragCoord.xy/uResolution.xy;
     vec2 mouse=((uTouch+1.)/2.);
     float dist=distance(mouse.xy,pixel.xy);
     
-    float n1=fbm(pixel+(uTime*.3))+fbm(pixel-uTime*.3);
-    float n2=fbm(pixel-cos(uTime*.3));
-    float n3=fbm(pixel+cos(uTime*.3));
-    vec3 col=(n1Color*n1+n2Color*n2+n3Color*n3);
+    float n1=fbm(pixel+(time*.3))+fbm(pixel-time*.3);
+    float n2=fbm(pixel-cos(time*.3));
+    float n3=fbm(pixel+cos(time*.3));
+    vec3 col=(nColor0*n1+nColor1*n2+nColor2*n3);
     
-    float m=snoise(vec2(1.+sin(uTime*.3)+pixel.x,1.+cos(uTime*.5)+pixel.y));
-    float mask=smoothstep(uScale*1.9,uScale*.9,dist);
+    float m=snoise(vec2(1.+sin(time*.3)+pixel.x,1.+cos(time*.5)+pixel.y));
+    float mask=smoothstep(uScale*1.9,uScale*.1,dist);
     
     // float blur=remap(-100.,100.,.2,.3,.9);
     // blur=pow(blur*3.,1.)*.4*uBlur*1.;
@@ -95,10 +95,15 @@ void main(){
     vec4 upColor=texture2D(bufferTexture,vec2(pixel.x,pixel.y+yPixel));
     vec4 downColor=texture2D(bufferTexture,vec2(pixel.x,pixel.y-yPixel));
     
-    float factor=7.*.016*((leftColor.r+rightColor.r+downColor.r+upColor.r)*2.-9.*gl_FragColor.r);
+    float factor=7.*0.016*((leftColor.r+rightColor.r+downColor.r+upColor.r)*2.-9.*gl_FragColor.r);
     float intensity=1.-min(length(mouse*2.-1.),1.)*.8;
+    float fn=clamp(clamp(rand(m),.1,1.9),1.-uNoise,1.);
 
-    
-    gl_FragColor.rgb=(col*mask*clamp(clamp(rand(m),.1,1.9),1.-uNoise,1.)+vec3(factor*col))*uLight;
-    gl_FragColor.a=(float(col)*mask*clamp(clamp(rand(m),.1,1.9),1.-uNoise,1.)+factor*float(col))*uLight*uAlpha;
+    //確認用
+    gl_FragColor.rgb=vec3(1.0,0.,0.);
+    gl_FragColor.a=(float(col)*mask*fn)*uLight*uAlpha;
+
+    //最終Output
+    // gl_FragColor.rgb=(col*mask*fn+vec3(factor*col)*fn)*uLight;
+    // gl_FragColor.a=(float(col)*mask*fn+factor*float(col))*uLight*uAlpha;
 }
