@@ -1,11 +1,10 @@
 import './style.css'
-import WebGL from './js/maincanvas';
+import FlowmapRenderer from './js/canvas';
 
 (() => {
    const target = "webgl";
    const el = document.getElementById(target);
-   const gParticle = new WebGL(
-   // const gParticle = new MainFog(   
+   const gParticle = new FlowmapRenderer(  
       el,
    );
    gParticle.init();
